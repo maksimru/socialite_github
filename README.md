@@ -1,6 +1,5 @@
 # Github OAuth2 Provider for Laravel Socialite
 
-[![Build Status](https://travis-ci.org/akkyoh/socialite_github.svg)](https://travis-ci.org/akkyoh/socialite_github)
 [![Latest Stable Version](https://poser.pugx.org/akkyoh/socialite_github/v/stable.svg)](https://packagist.org/packages/akkyoh/socialite_github)
 [![Total Downloads](https://poser.pugx.org/akkyoh/socialite_github/downloads.svg)](https://packagist.org/packages/akkyoh/socialite_github)
 [![Latest Unstable Version](https://poser.pugx.org/akkyoh/socialite_github/v/unstable.svg)](https://packagist.org/packages/akkyoh/socialite_github)

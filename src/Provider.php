@@ -6,6 +6,8 @@ use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Two\ProviderInterface;
 use SocialiteProviders\Manager\OAuth2\AbstractProvider;
 use SocialiteProviders\Manager\OAuth2\User;
+use Exception;
+use Illuminate\Support\Arr;
 
 class Provider extends AbstractProvider implements ProviderInterface
 {
@@ -17,16 +19,14 @@ class Provider extends AbstractProvider implements ProviderInterface
     /**
      * {@inheritdoc}
      */
-    protected $scopes = ['user'];
+    protected $scopes = ['user:email'];
 
     /**
      * {@inheritdoc}
      */
     protected function getAuthUrl($state)
     {
-        return $this -> buildAuthUrlFromBase(
-            'https://github.com/login/oauth/authorize', $state
-        );
+        return $this->buildAuthUrlFromBase('https://github.com/login/oauth/authorize', $state);
     }
 
     /**
@@ -42,13 +42,44 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function getUserByToken($token)
     {
-        $response = $this -> getHttpClient() -> get(
-            'https://api.github.com/user?access_token='.$token['access_token']
+        $userUrl = 'https://api.github.com/user?access_token='.$token;
+
+        $response = $this->getHttpClient()->get(
+            $userUrl, $this->getRequestOptions()
         );
 
-        $response = json_decode($response -> getBody() -> getContents(), true);
+        $user = json_decode($response->getBody(), true);
 
-        return $response;
+        if (in_array('user:email', $this->scopes)) {
+            $user['email'] = $this->getEmailByToken($token);
+        }
+
+        return $user;
+    }
+
+    /**
+     * Get the email for the given access token.
+     *
+     * @param  string  $token
+     * @return string|null
+     */
+    protected function getEmailByToken($token)
+    {
+        $emailsUrl = 'https://api.github.com/user/emails?access_token='.$token;
+
+        try {
+            $response = $this->getHttpClient()->get(
+                $emailsUrl, $this->getRequestOptions()
+            );
+        } catch (Exception $e) {
+            return;
+        }
+
+        foreach (json_decode($response->getBody(), true) as $email) {
+            if ($email['primary'] && $email['verified']) {
+                return $email['email'];
+            }
+        }
     }
 
     /**
@@ -56,10 +87,9 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function mapUserToObject(array $user)
     {
-        return (new User()) -> setRaw($user) -> map([
-            'id' => $user['id'], 'nickname' => $user['login'],
-            'name' => $user['name'],
-            'email' => $user['email'], 'avatar' => $user['avatar_url'],
+        return (new User)->setRaw($user)->map([
+            'id' => $user['id'], 'nickname' => $user['login'], 'name' => Arr::get($user, 'name'),
+            'email' => Arr::get($user, 'email'), 'avatar' => $user['avatar_url'],
         ]);
     }
 
@@ -95,4 +125,19 @@ class Provider extends AbstractProvider implements ProviderInterface
 
         return $user->setToken(array_get($token, 'access_token'));
     }
+
+    /**
+     * Get the default options for an HTTP request.
+     *
+     * @return array
+     */
+    protected function getRequestOptions()
+    {
+        return [
+            'headers' => [
+                'Accept' => 'application/vnd.github.v3+json',
+            ],
+        ];
+    }
+
 }

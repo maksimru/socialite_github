@@ -42,7 +42,7 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function getUserByToken($token)
     {
-        $userUrl = 'https://api.github.com/user?access_token='.$token;
+        $userUrl = 'https://api.github.com/user?access_token='.array_get($token, 'access_token');
 
         $response = $this->getHttpClient()->get(
             $userUrl, $this->getRequestOptions()
@@ -65,7 +65,7 @@ class Provider extends AbstractProvider implements ProviderInterface
      */
     protected function getEmailByToken($token)
     {
-        $emailsUrl = 'https://api.github.com/user/emails?access_token='.$token;
+        $emailsUrl = 'https://api.github.com/user/emails?access_token='.array_get($token, 'access_token');
 
         try {
             $response = $this->getHttpClient()->get(
@@ -119,8 +119,8 @@ class Provider extends AbstractProvider implements ProviderInterface
         if ($this -> hasInvalidState())
             throw new InvalidStateException();
 
-        $user = $this -> mapUserToObject($this -> getUserByToken(
-            $token = $this -> getAccessTokenResponse($this -> getCode())
+        $user = $this->mapUserToObject($this->getUserByToken(
+            $token = $this->getAccessTokenResponse($this->getCode())
         ));
 
         return $user->setToken(array_get($token, 'access_token'));
